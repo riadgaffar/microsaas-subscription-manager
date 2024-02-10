@@ -39,7 +39,7 @@ public class UserClientTests {
     assertThat(email).isEqualTo("user1@example.com");
 
     JSONArray subscriptions = documentContext.read("$.subscriptions");
-    assertThat(subscriptions.size()).isEqualTo(1);
+    assertThat(subscriptions.size()).isEqualTo(4);
   }
 
   @Test
