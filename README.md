@@ -64,3 +64,21 @@ This high-level overview should get you started on building your Subscription Ma
 - User and Subscriptions models/entities with one to many relationships
 - Repository interfaces
 - REST Controller
+
+## TODOs:
+
+### 1. Add Spring Security
+
+### 2. Add JWT OAuth
+
+### 3. Add Expenses Entity
+
+### 4. Full Client test suit that mimics UI
+
+### 5. Which UI libray/Framework?
+  - Angular?
+  - React (native)?
+  - Vue?
+  - Flutter?
+
+

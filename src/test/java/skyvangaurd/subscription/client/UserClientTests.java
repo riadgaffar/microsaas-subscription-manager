@@ -1,5 +1,6 @@
 package skyvangaurd.subscription.client;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -75,5 +76,29 @@ public class UserClientTests {
     String addSubscriptionUrl = String.format("/users/%d/subscription", retrievedUser.getId());
     URI newUserSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription, retrievedUser.getId());
     assertThat(newUserSubscriptionLocation).isNotNull();
+  }
+
+  @Test
+  @Disabled
+  void shouldUpdateAnExistingSubscription() {
+
+  }
+
+  @Test
+  @Disabled
+  void shouldDeleteAnExistingSubscription() {
+    
+  }
+
+  @Test
+  @Disabled
+  void shouldFindUsersWithSubscriptionsExpiringBetween() {
+
+  }
+
+  @Test
+  @Disabled
+  void shouldDeleteAUserAndAllAssociatedSubscriptions() {
+    
   }
 }
