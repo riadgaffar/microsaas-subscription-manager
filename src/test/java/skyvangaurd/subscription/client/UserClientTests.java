@@ -71,6 +71,14 @@ public class UserClientTests {
   }
 
   @Test
+  void shouldNotReturnASubscriptionForAUserWithAnUnknownSubscriptionId() {
+    ResponseEntity<String> response = restTemplate.getForEntity("/users/0/subscriptions/1000", String.class);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.getBody()).isBlank();
+  }
+
+
+  @Test
   void shouldReturnAllSubscriptionForAUser() {
     String url = "/users/{userId}/subscriptions";
     ResponseEntity<Subscription[]> response = restTemplate.getForEntity(url, Subscription[].class, 0);

@@ -60,7 +60,7 @@ public class UserController {
 	@GetMapping(value = "/users/{userId}/subscriptions/{subscriptionId}")
 	public Optional<Subscription> subscriptionDetailsByUser(@PathVariable("userId") Long userId,
 			@PathVariable("subscriptionId") Long subscriptionId) {
-		return userService.findByUserAndSubscriptionIds(userId, subscriptionId);
+		return retrieveSubscription(userId, subscriptionId);
 	}
 
 	/**
@@ -176,8 +176,8 @@ public class UserController {
 	}
 
 	/**
-	 * Finds the Account with the given id, throwing an IllegalArgumentException
-	 * if there is no such Account.
+	 * Finds the User with the given id, throwing an IllegalArgumentException
+	 * if there is no such User.
 	 */
 	private Optional<User> retrieveUser(long userId) throws IllegalArgumentException {
 		Optional<User> user = userService.findById(userId);
@@ -185,6 +185,19 @@ public class UserController {
 			throw new IllegalArgumentException("No such user with id " + userId);
 		}
 		return user;
+	}
+
+
+	/**
+	 * Finds the Subscription with the given id, for a given User with id, throwing an 
+	 * IllegalArgumentException if there is no such Subscription.
+	 */
+	private Optional<Subscription> retrieveSubscription(long userId, long subscriptionId) throws IllegalArgumentException {
+		Optional<Subscription> subscription = userService.findByUserAndSubscriptionIds(userId, subscriptionId);
+		if (subscription.isEmpty()) {
+			throw new IllegalArgumentException("No such subscription with id " + subscriptionId);
+		}
+		return subscription;
 	}
 
 	/**
