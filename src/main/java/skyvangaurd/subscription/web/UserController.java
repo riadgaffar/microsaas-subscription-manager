@@ -83,7 +83,7 @@ public class UserController {
 	 */
 	@GetMapping(value = "/users")
 	public List<User> userList() {
-		return userService.getAllusers();
+		return userService.getAllUsers();
 	}
 
 	/**

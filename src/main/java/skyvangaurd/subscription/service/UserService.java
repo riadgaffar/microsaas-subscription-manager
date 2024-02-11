@@ -16,7 +16,7 @@ public interface UserService {
 
   public Optional<User> findById(Long id);
 
-  public List<User> getAllusers();
+  public List<User> getAllUsers();
 
   public boolean existsByEmail(String email);
 
