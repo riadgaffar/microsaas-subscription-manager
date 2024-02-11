@@ -51,6 +51,32 @@ public class UserController {
 
 	/**
 	 *
+	 * @param userId
+	 * @param subscriptionId
+	 * @return Optional<Subscription>
+	 *
+	 *         Retrieves a subscription for a user
+	 */
+	@GetMapping(value = "/users/{userId}/subscriptions/{subscriptionId}")
+	public Optional<Subscription> subscriptionDetailsByUser(@PathVariable("userId") Long userId,
+			@PathVariable("subscriptionId") Long subscriptionId) {
+		return userService.findByUserAndSubscriptionIds(userId, subscriptionId);
+	}
+
+	/**
+	 *
+	 * @param userId
+	 * @return List<Subscription>
+	 *
+	 *         Provides a list of all subscriptions for a user
+	 */
+	@GetMapping(value = "/users/{userId}/subscriptions")
+	public List<Subscription> subscriptionsByUser(@PathVariable("userId") Long userId) {
+		return userService.findAllSubscriptions(userId);
+	}
+
+	/**
+	 *
 	 * @return List<User>
 	 *
 	 *         Provides a list of all users and associated subscriptions
@@ -97,10 +123,10 @@ public class UserController {
 	 * 
 	 *         Updates an existing subscription for an existing user
 	 */
-	@PutMapping("/users/{userId}/subscriptions/{subscriptionId}")
+	@PutMapping(value = "/users/{userId}/subscriptions/{subscriptionId}")
 	public ResponseEntity<Void> updateSubscriptionForUser(
-			@PathVariable Long userId,
-			@PathVariable Long subscriptionId,
+			@PathVariable("userId") Long userId,
+			@PathVariable("subscriptionId") Long subscriptionId,
 			@RequestBody Subscription updatedSubscriptionDetails) {
 		Subscription updatedSubscription = userService.updateSubscriptionForUser(userId, subscriptionId,
 				updatedSubscriptionDetails);
@@ -116,7 +142,8 @@ public class UserController {
 	 */
 	@DeleteMapping("/users/{userId}/subscriptions/{subscriptionId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT) // 204
-	public void removeSubscription(@PathVariable Long userId, @PathVariable Long subscriptionId) {
+	public void removeSubscription(@PathVariable("userId") Long userId,
+			@PathVariable("subscriptionId") Long subscriptionId) {
 		userService.deleteSubscriptionForUser(userId, subscriptionId);
 	}
 

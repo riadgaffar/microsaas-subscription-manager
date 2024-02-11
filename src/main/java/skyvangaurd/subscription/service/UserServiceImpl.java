@@ -50,6 +50,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<Subscription> findByUserAndSubscriptionIds(Long userId, Long subscriptionId) {
+        return subscriptionRepository.findByIdAndUserId(userId, subscriptionId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Subscription> findAllSubscriptions(Long userId) {
+        return subscriptionRepository.findAllByUserId(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<User> getAllusers() {
         return userRepository.findAll();
     }
@@ -79,7 +91,7 @@ public class UserServiceImpl implements UserService {
 
         Subscription subscription = subscriptionRepository.findByIdAndUserId(subscriptionId, user.getId())
                 .orElseThrow(
-                        () -> new IllegalArgumentException("Subscription not found for the user with id: " + subscriptionId));
+                        () -> new IllegalArgumentException("Subscription not found for the user with id: " + userId));
 
         subscription.setName(updatedSubscriptionDetails.getName());
         subscription.setCost(updatedSubscriptionDetails.getCost());
@@ -97,7 +109,7 @@ public class UserServiceImpl implements UserService {
         
         Optional<Subscription> subscription = subscriptionRepository.findById(subscriptionId);
         if (!subscription.isPresent() || !subscription.get().getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Subscription not found for the user with id: " + subscriptionId);
+            throw new IllegalArgumentException("Subscription id: " + subscriptionId + " not found for the user with id: " + userId);
         }
 
         subscriptionRepository.deleteById(subscriptionId);

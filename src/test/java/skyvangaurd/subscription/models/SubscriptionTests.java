@@ -75,13 +75,7 @@ public class SubscriptionTests {
         + "\"id\": 123,"
         + "\"name\": \"Premium Streaming Service\","
         + "\"cost\": 12.99,"
-        + "\"renewalDate\": \"2024-01-15\","
-        + "\"user\": {"
-        + "    \"id\": 123123123,"
-        + "    \"email\": \"test@test.com\","
-        + "    \"password\": \"changeme\","
-        + "    \"subscriptions\": []"
-        + "  }"
+        + "\"renewalDate\": \"2024-01-15\""
         + "}";
 
     Map<String, Object> expectedSubscriptionJson = objectMapper.readValue(

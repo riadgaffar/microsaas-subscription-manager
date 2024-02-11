@@ -5,7 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import com.jayway.jsonpath.DocumentContext;
@@ -59,6 +63,22 @@ public class UserClientTests {
   }
 
   @Test
+  void shouldReturnASubscriptionForAUser() {
+    String url = "/users/{userId}/subscriptions/{subscriptionId}";
+    ResponseEntity<Subscription> response = restTemplate.getForEntity(url, Subscription.class, 0, 0);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+  }
+
+  @Test
+  void shouldReturnAllSubscriptionForAUser() {
+    String url = "/users/{userId}/subscriptions";
+    ResponseEntity<Subscription[]> response = restTemplate.getForEntity(url, Subscription[].class, 0);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+  }
+
+  @Test
   void shouldRegisterANewUserAndAddANewSubscription() {
     User newUser = new User();
     newUser.setEmail("john.doe@here.com");
@@ -74,20 +94,65 @@ public class UserClientTests {
     newSubscription.setRenewalDate(LocalDate.of(2024, 6, 15));
 
     String addSubscriptionUrl = String.format("/users/%d/subscription", retrievedUser.getId());
-    URI newUserSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription, retrievedUser.getId());
+    URI newUserSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription,
+        retrievedUser.getId());
     assertThat(newUserSubscriptionLocation).isNotNull();
   }
 
   @Test
-  @Disabled
-  void shouldUpdateAnExistingSubscription() {
+  void shouldUpdateAnExistingUserSubscription() {
+    // Prepare the updated subscription details
+    Subscription updatedSubscription = new Subscription();
+    updatedSubscription.setName("Updated Streaming Service");
+    updatedSubscription.setCost(BigDecimal.valueOf(3.99));
+    updatedSubscription.setRenewalDate(LocalDate.of(2024, 7, 15));
 
+    // Set headers
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    // Create the request entity
+    HttpEntity<Subscription> requestEntity = new HttpEntity<>(updatedSubscription, headers);
+
+    // Define the URL with path variables
+    String url = "/users/{userId}/subscriptions/{subscriptionId}";
+
+    // Execute the PUT request
+    ResponseEntity<Subscription> response = restTemplate.exchange(
+        url,
+        HttpMethod.PUT,
+        requestEntity,
+        Subscription.class,
+        0,
+        1
+    );
+
+    // Verify the response status and body
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertThat(response.getHeaders()).isNotNull();
+
+    // Extract JsonPath location
+    DocumentContext documentContext = JsonPath.parse(response.getHeaders());
+    String updatedSubscriptionLocation = documentContext.read("$.location[0]");
+    assertThat(updatedSubscriptionLocation).isNotNull();
   }
 
   @Test
-  @Disabled
-  void shouldDeleteAnExistingSubscription() {
+  void shouldAddAndDeleteASubscriptionForAnExistingUser() {
+    Subscription newSubscription = new Subscription();
+    newSubscription.setName("Ultimate Streaming Service");
+    newSubscription.setCost(BigDecimal.valueOf(17.99));
+    newSubscription.setRenewalDate(LocalDate.of(2024, 6, 15));
+
+    // User ID 3 does not have any subscription in the database
+    String addSubscriptionUrl = String.format("/users/%d/subscription", 3);
+    URI userSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription, 3);
     
+    restTemplate.delete(userSubscriptionLocation);
+
+    ResponseEntity<Subscription> response = restTemplate.getForEntity(userSubscriptionLocation, Subscription.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
   }
 
   @Test
@@ -99,6 +164,6 @@ public class UserClientTests {
   @Test
   @Disabled
   void shouldDeleteAUserAndAllAssociatedSubscriptions() {
-    
+
   }
 }

@@ -8,12 +8,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 @Entity
 @Table(name = "subscriptions")
 @Getter @Setter @NoArgsConstructor
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = Subscription.class)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "user"})
 public class Subscription {
 
     @Id

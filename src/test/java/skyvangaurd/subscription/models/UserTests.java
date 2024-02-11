@@ -82,8 +82,7 @@ public class UserTests {
       + "\"id\":123,"
       + "\"name\":\"Premium Streaming Service\","
       + "\"cost\":12.99,"
-      + "\"renewalDate\":\"2024-01-15\","
-      + "\"user\":123123123}]}";
+      + "\"renewalDate\":\"2024-01-15\"}]}";
 
     Map<String, Object> expectedUserJson = objectMapper.readValue(
       expectedUserWithSubscription, new TypeReference<Map<String, Object>>() {});

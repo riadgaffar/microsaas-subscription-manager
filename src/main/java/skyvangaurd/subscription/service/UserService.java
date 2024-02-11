@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import javax.swing.text.html.Option;
+
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
 
@@ -17,6 +19,10 @@ public interface UserService {
   public List<User> getAllusers();
 
   public boolean existsByEmail(String email);
+
+  public Optional<Subscription> findByUserAndSubscriptionIds(Long userId, Long subscriptionId);
+
+  public List<Subscription> findAllSubscriptions(Long userId);
 
   public void addSubscription(Long userId, Subscription subscription);
 
