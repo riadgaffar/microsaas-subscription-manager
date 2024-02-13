@@ -109,7 +109,7 @@ public class UserController {
 	 *         Registers a new user
 	 */
 	@PostMapping(value = "/users")
-	public ResponseEntity<Void> resisterUser(@RequestBody UserRegistrationDto registrationDto) {
+	public ResponseEntity<Void> registerUser(@RequestBody UserRegistrationDto registrationDto) {
 		User user = userService.registerUser(registrationDto);
 		return entityWithLocation(user.getId());
 	}
