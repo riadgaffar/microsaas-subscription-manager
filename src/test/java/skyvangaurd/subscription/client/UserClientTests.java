@@ -21,6 +21,7 @@ import net.minidev.json.JSONArray;
 import skyvangaurd.subscription.models.Authority;
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.serialization.UserDetailsDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,14 +42,14 @@ public class UserClientTests {
   }
 
   @Test
-  void getAuthoritiesForUser_should_return_403_for_user() {
+  void shouldReturn403ForInvalidUserAuthorities() {
     ResponseEntity<String> responseEntity = restTemplate.getForEntity("/api/authorities?email=user@user.com", String.class);
 
     assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
-  void getAuthoritiesForUser_should_return_authorities_for_admin_and_super_admin() {
+  void shouldReturnAuthoritiesRolesForAdminAndSuperAdminValidUser() {
 
     String[] authorities = restTemplate.getForObject("/api/authorities?email=user1@example.com", String[].class);
     
@@ -81,7 +82,7 @@ public class UserClientTests {
 
   @Test
   void shouldReturnAllUsersWhenDataIsSaved() {
-    ResponseEntity<User[]> response = restTemplate.getForEntity("/api/users", User[].class);
+    ResponseEntity<UserDetailsDto[]> response = restTemplate.getForEntity("/api/users", UserDetailsDto[].class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().length).isGreaterThanOrEqualTo(0);
@@ -181,7 +182,7 @@ public class UserClientTests {
     newSubscription.setCost(BigDecimal.valueOf(17.99));
     newSubscription.setRenewalDate(LocalDate.of(2024, 6, 15));
 
-    // User ID 3 does not have any subscription in the database
+    // User ID 3 does not have any subscription in the in memory h2 database
     String addSubscriptionUrl = String.format("/api/users/%d/subscription", 3);
     URI userSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription, 3);
 

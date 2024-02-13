@@ -3,6 +3,7 @@ package skyvangaurd.subscription.web;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import skyvangaurd.subscription.models.Authority;
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
 import skyvangaurd.subscription.serialization.AuthorityDto;
@@ -97,15 +97,15 @@ public class UserController {
 	 *         Provides a list of all users and associated subscriptions
 	 */
 	@GetMapping(value = "/users")
-	public List<User> userList() {
-		return userService.getAllUsers();
+	public List<UserDetailsDto> userList() {
+		return retrieveAllUsers(userService.getAllUsers());
 	}
 
 	/**
-	 * 
+	 *
 	 * @param newUser
 	 * @return entityWithLocation
-	 * 
+	 *
 	 *         Registers a new user
 	 */
 	@PostMapping(value = "/users")
@@ -200,6 +200,21 @@ public class UserController {
 	}
 
 	/**
+	 * 
+	 * Converts all Users retrieve from the database to a List of UserDetailsDto
+	 */
+
+	 private List<UserDetailsDto> retrieveAllUsers(List<User> users) {
+		List<UserDetailsDto> userListDtos = new ArrayList<>();
+
+		for (User user: users) {
+			userListDtos.add(convertToUserDto(user));
+		}
+
+		return userListDtos;
+	 }
+
+	/**
 	 * Finds the User with the given id, throwing an IllegalArgumentException
 	 * if there is no such User.
 	 */
@@ -210,7 +225,15 @@ public class UserController {
 			throw new IllegalArgumentException("No such user with id " + userId);
 		}
 
-		User user = userOpt.get();
+		return convertToUserDto(userOpt.get());
+	}
+
+
+	/**
+	 * 
+	 * Converts User to UserDetailsDto
+	 */
+	private UserDetailsDto convertToUserDto(User user) {
 		List<SubscriptionDto> subscriptionDtos = convertSubscriptionsToDto(user.getSubscriptions().stream().toList());
 
 		List<AuthorityDto> authorityDtos = user.getAuthorities().stream()
