@@ -65,6 +65,10 @@ This high-level overview should get you started on building your Subscription Ma
 - Repository interfaces
 - REST Controller
 
+## API Docs
+http://localhost:8080/swagger-ui/index.html
+http://localhost:8080/v3/api-docs
+
 ## TODOs:
 
 ### 1. Add Spring Security

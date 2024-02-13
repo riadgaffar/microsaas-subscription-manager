@@ -5,9 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import skyvangaurd.subscription.models.Authority;
@@ -22,26 +19,22 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.Collection;
 import java.util.HashSet;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
-    private final AuthorityRepository authorityRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final PasswordEncoder passwordEncoder;
-
     @Autowired
-    public UserServiceImpl(UserRepository userRepository,
-            AuthorityRepository authorityRepository, SubscriptionRepository subscriptionRepository,
-            PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.authorityRepository = authorityRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+    private UserRepository userRepository;
+    
+    @Autowired
+    private AuthorityRepository authorityRepository;
+    
+    @Autowired
+    private SubscriptionRepository subscriptionRepository;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @Transactional(readOnly = true)
