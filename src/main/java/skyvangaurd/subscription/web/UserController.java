@@ -1,6 +1,7 @@
 package skyvangaurd.subscription.web;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.net.URI;
 import java.util.List;
 
@@ -19,8 +20,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import skyvangaurd.subscription.models.Authority;
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.serialization.AuthorityDto;
+import skyvangaurd.subscription.serialization.SubscriptionDto;
+import skyvangaurd.subscription.serialization.UserDetailsDto;
 import skyvangaurd.subscription.serialization.UserRegistrationDto;
 import skyvangaurd.subscription.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,7 +46,6 @@ public class UserController {
 		this.userService = userService;
 	}
 
-
 	@GetMapping(value = "/authorities")
 	public List<String> getAuthoritiesForUser(@RequestParam("email") String email) {
 		return userService.getAuthoritiesForUser(email);
@@ -56,7 +60,7 @@ public class UserController {
 	 *
 	 */
 	@GetMapping(value = "/users/{id}")
-	public Optional<User> userDetails(@PathVariable("id") long id) {
+	public UserDetailsDto userDetails(@PathVariable("id") long id) {
 		return retrieveUser(id);
 	}
 
@@ -149,7 +153,7 @@ public class UserController {
 	 * @param userId
 	 * @param subscriptionId
 	 *
-	 *         Removes an existing subscription for an existing user
+	 *                       Removes an existing subscription for an existing user
 	 */
 	@DeleteMapping("/users/{userId}/subscriptions/{subscriptionId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT) // 204
@@ -186,7 +190,6 @@ public class UserController {
 		logger.error("Exception is: ", ex);
 	}
 
-
 	/**
 	 * Maps DataIntegrityViolationException to a 409 Conflict HTTP status code.
 	 */
@@ -200,24 +203,36 @@ public class UserController {
 	 * Finds the User with the given id, throwing an IllegalArgumentException
 	 * if there is no such User.
 	 */
-	private Optional<User> retrieveUser(long userId) throws IllegalArgumentException {
-		Optional<User> user = userService.findById(userId);
-		if (user.isEmpty()) {
+	private UserDetailsDto retrieveUser(long userId) throws IllegalArgumentException {
+		Optional<User> userOpt = userService.findById(userId);
+
+		if (userOpt.isEmpty()) {
 			throw new IllegalArgumentException("No such user with id " + userId);
 		}
-		return user;
+
+		User user = userOpt.get();
+		List<SubscriptionDto> subscriptionDtos = convertSubscriptionsToDto(user.getSubscriptions().stream().toList());
+
+		List<AuthorityDto> authorityDtos = user.getAuthorities().stream()
+				.map(authority -> new AuthorityDto(authority.getName()))
+				.collect(Collectors.toList());
+
+		UserDetailsDto UserDetailsDto = new UserDetailsDto(user.getId(), user.getEmail(), authorityDtos, subscriptionDtos);
+		return UserDetailsDto;
 	}
 
-
 	/**
-	 * Finds the Subscription with the given id, for a given User with id, throwing an 
+	 * Finds the Subscription with the given id, for a given User with id, throwing
+	 * an
 	 * IllegalArgumentException if there is no such Subscription.
 	 */
-	private ResponseEntity<Subscription> retrieveSubscription(long userId, long subscriptionId) throws IllegalArgumentException {
-		// Optional<Subscription> subscription = userService.findByUserAndSubscriptionIds(userId, subscriptionId);
+	private ResponseEntity<Subscription> retrieveSubscription(long userId, long subscriptionId)
+			throws IllegalArgumentException {
+		// Optional<Subscription> subscription =
+		// userService.findByUserAndSubscriptionIds(userId, subscriptionId);
 		return userService.findByUserAndSubscriptionIds(subscriptionId, userId)
-            .map(subscription -> ResponseEntity.ok(subscription))
-            .orElse(ResponseEntity.notFound().build());
+				.map(subscription -> ResponseEntity.ok(subscription))
+				.orElse(ResponseEntity.notFound().build());
 	}
 
 	/**
@@ -241,5 +256,13 @@ public class UserController {
 		// Return an HttpEntity object - it will be used to build the
 		// HttpServletResponse
 		return ResponseEntity.created(location).build();
+	}
+
+	// Helper method to convert subscriptions to SubscriptionDto list
+	private List<SubscriptionDto> convertSubscriptionsToDto(List<Subscription> subscriptions) {
+		return subscriptions.stream()
+				.map(subscription -> new SubscriptionDto(subscription.getId(), subscription.getName(), subscription.getCost(),
+						subscription.getRenewalDate()))
+				.collect(Collectors.toList());
 	}
 }
