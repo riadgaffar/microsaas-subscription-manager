@@ -68,7 +68,7 @@ public class UserController {
 	 *         Retrieves a subscription for a user
 	 */
 	@GetMapping(value = "/users/{userId}/subscriptions/{subscriptionId}")
-	public Optional<Subscription> subscriptionDetailsByUser(@PathVariable("userId") Long userId,
+	public ResponseEntity<Subscription> subscriptionDetailsByUser(@PathVariable("userId") Long userId,
 			@PathVariable("subscriptionId") Long subscriptionId) {
 		return retrieveSubscription(userId, subscriptionId);
 	}
@@ -212,12 +212,11 @@ public class UserController {
 	 * Finds the Subscription with the given id, for a given User with id, throwing an 
 	 * IllegalArgumentException if there is no such Subscription.
 	 */
-	private Optional<Subscription> retrieveSubscription(long userId, long subscriptionId) throws IllegalArgumentException {
-		Optional<Subscription> subscription = userService.findByUserAndSubscriptionIds(userId, subscriptionId);
-		if (subscription.isEmpty()) {
-			throw new IllegalArgumentException("No such subscription with id " + subscriptionId);
-		}
-		return subscription;
+	private ResponseEntity<Subscription> retrieveSubscription(long userId, long subscriptionId) throws IllegalArgumentException {
+		// Optional<Subscription> subscription = userService.findByUserAndSubscriptionIds(userId, subscriptionId);
+		return userService.findByUserAndSubscriptionIds(subscriptionId, userId)
+            .map(subscription -> ResponseEntity.ok(subscription))
+            .orElse(ResponseEntity.notFound().build());
 	}
 
 	/**

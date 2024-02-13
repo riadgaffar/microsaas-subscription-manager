@@ -90,7 +90,7 @@ public class UserClientTests {
   @Test
   void shouldReturnASubscriptionForAUser() {
     String url = "/api/users/{userId}/subscriptions/{subscriptionId}";
-    ResponseEntity<Subscription> response = restTemplate.getForEntity(url, Subscription.class, 0, 0);
+    ResponseEntity<Subscription> response = restTemplate.getForEntity(url, Subscription.class, 0, 1);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
   }
