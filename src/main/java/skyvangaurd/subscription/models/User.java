@@ -25,10 +25,29 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // @JsonIgnore // Keeps ignoring password field
     @Column(nullable = false)
+    // @JsonIgnore
     private String password;
+
+    // @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @JoinTable(
+        name = "user_authorities",
+        joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
+        inverseJoinColumns = @JoinColumn(name = "authority_id", referencedColumnName = "id")
+    )
+    private Set<Authority> authorities = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Subscription> subscriptions = new HashSet<>();
+
+    public void addAuthority(Authority authority) {
+        authorities.add(authority);
+        authority.getUsers().add(this);
+    }
+
+    public void removeAuthority(Authority authority) {
+        authorities.remove(authority);
+        authority.getUsers().remove(this);
+    }
 }

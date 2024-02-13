@@ -4,12 +4,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import javax.swing.text.html.Option;
-
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
 
 public interface UserService {
+
+  public List<String> getAuthoritiesForUser(String username);
+
   public User registerUser(User user);
 
   public Optional<User> findByEmail(String email);

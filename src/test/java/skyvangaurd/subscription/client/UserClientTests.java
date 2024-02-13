@@ -1,7 +1,9 @@
 package skyvangaurd.subscription.client;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -16,6 +18,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 
 import net.minidev.json.JSONArray;
+import skyvangaurd.subscription.models.Authority;
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
 
@@ -26,14 +29,36 @@ import java.net.URI;
 import java.time.LocalDate;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UserClientTests {
 
   @Autowired
   TestRestTemplate restTemplate;
 
+  @BeforeAll
+  public void setup() {
+    restTemplate = restTemplate.withBasicAuth("user1@example.com", "changeme");
+  }
+
+  @Test
+  void getAuthoritiesForUser_should_return_403_for_user() {
+    ResponseEntity<String> responseEntity = restTemplate.getForEntity("/api/authorities?email=user@user.com", String.class);
+
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @Test
+  void getAuthoritiesForUser_should_return_authorities_for_admin_and_super_admin() {
+
+    String[] authorities = restTemplate.getForObject("/api/authorities?email=user1@example.com", String[].class);
+    
+    assertThat(authorities.toString().contains("ROLE_ADMIN"));
+    assertThat(authorities.toString().contains("ROLE_SUPERADMIN"));
+  }
+
   @Test
   void shouldReturnAUserDetailsWhenDataIsSaved() {
-    ResponseEntity<String> response = restTemplate.getForEntity("/users/0", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/users/0", String.class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
     DocumentContext documentContext = JsonPath.parse(response.getBody());
@@ -49,14 +74,14 @@ public class UserClientTests {
 
   @Test
   void shouldNotReturnAUserWithAnUnknownId() {
-    ResponseEntity<String> response = restTemplate.getForEntity("/users/1000", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/users/1000", String.class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isBlank();
   }
 
   @Test
   void shouldReturnAllUsersWhenDataIsSaved() {
-    ResponseEntity<User[]> response = restTemplate.getForEntity("/users", User[].class);
+    ResponseEntity<User[]> response = restTemplate.getForEntity("/api/users", User[].class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().length).isGreaterThanOrEqualTo(0);
@@ -64,7 +89,7 @@ public class UserClientTests {
 
   @Test
   void shouldReturnASubscriptionForAUser() {
-    String url = "/users/{userId}/subscriptions/{subscriptionId}";
+    String url = "/api/users/{userId}/subscriptions/{subscriptionId}";
     ResponseEntity<Subscription> response = restTemplate.getForEntity(url, Subscription.class, 0, 0);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
@@ -72,15 +97,14 @@ public class UserClientTests {
 
   @Test
   void shouldNotReturnASubscriptionForAUserWithAnUnknownSubscriptionId() {
-    ResponseEntity<String> response = restTemplate.getForEntity("/users/0/subscriptions/1000", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/users/0/subscriptions/1000", String.class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isBlank();
   }
 
-
   @Test
   void shouldReturnAllSubscriptionForAUser() {
-    String url = "/users/{userId}/subscriptions";
+    String url = "/api/users/{userId}/subscriptions";
     ResponseEntity<Subscription[]> response = restTemplate.getForEntity(url, Subscription[].class, 0);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
@@ -90,10 +114,16 @@ public class UserClientTests {
   void shouldRegisterANewUserAndAddANewSubscription() {
     User newUser = new User();
     newUser.setEmail("john.doe@here.com");
-    newUser.setPassword("password");
+    newUser.setPassword("changeme");
 
-    URI newUserLocation = restTemplate.postForLocation("/users", newUser);
-    User retrievedUser = restTemplate.getForObject(newUserLocation, User.class);
+    Authority authority = new Authority();
+    authority.setName("ROLE_ADMIN");
+    newUser.addAuthority(authority);
+
+    URI newUserLocation = restTemplate
+        .postForLocation("/api/users", newUser);
+    User retrievedUser = restTemplate
+        .getForObject(newUserLocation, User.class);
     assertThat(retrievedUser.getEmail()).isEqualTo(newUser.getEmail());
 
     Subscription newSubscription = new Subscription();
@@ -101,9 +131,9 @@ public class UserClientTests {
     newSubscription.setCost(BigDecimal.valueOf(17.99));
     newSubscription.setRenewalDate(LocalDate.of(2024, 6, 15));
 
-    String addSubscriptionUrl = String.format("/users/%d/subscription", retrievedUser.getId());
-    URI newUserSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription,
-        retrievedUser.getId());
+    String addSubscriptionUrl = String.format("/api/users/%d/subscription", retrievedUser.getId());
+    URI newUserSubscriptionLocation = restTemplate
+        .postForLocation(addSubscriptionUrl, newSubscription, retrievedUser.getId());
     assertThat(newUserSubscriptionLocation).isNotNull();
   }
 
@@ -123,7 +153,7 @@ public class UserClientTests {
     HttpEntity<Subscription> requestEntity = new HttpEntity<>(updatedSubscription, headers);
 
     // Define the URL with path variables
-    String url = "/users/{userId}/subscriptions/{subscriptionId}";
+    String url = "/api/users/{userId}/subscriptions/{subscriptionId}";
 
     // Execute the PUT request
     ResponseEntity<Subscription> response = restTemplate.exchange(
@@ -132,8 +162,7 @@ public class UserClientTests {
         requestEntity,
         Subscription.class,
         0,
-        1
-    );
+        1);
 
     // Verify the response status and body
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -153,9 +182,9 @@ public class UserClientTests {
     newSubscription.setRenewalDate(LocalDate.of(2024, 6, 15));
 
     // User ID 3 does not have any subscription in the database
-    String addSubscriptionUrl = String.format("/users/%d/subscription", 3);
+    String addSubscriptionUrl = String.format("/api/users/%d/subscription", 3);
     URI userSubscriptionLocation = restTemplate.postForLocation(addSubscriptionUrl, newSubscription, 3);
-    
+
     restTemplate.delete(userSubscriptionLocation);
 
     ResponseEntity<Subscription> response = restTemplate.getForEntity(userSubscriptionLocation, Subscription.class);

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,8 +25,11 @@ import skyvangaurd.subscription.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
+@RequestMapping("/api")
 public class UserController {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -34,6 +38,12 @@ public class UserController {
 	@Autowired
 	public UserController(UserService userService) {
 		this.userService = userService;
+	}
+
+
+	@GetMapping(value = "/authorities")
+	public List<String> getAuthoritiesForUser(@RequestParam("email") String email) {
+		return userService.getAuthoritiesForUser(email);
 	}
 
 	/**
@@ -165,6 +175,16 @@ public class UserController {
 	public void handleNotFound(Exception ex) {
 		logger.error("Exception is: ", ex);
 	}
+
+	/**
+	 * Maps AccessDeniedExceptions to a 403 FORBIDDEN HTTP status code.
+	 */
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	@ExceptionHandler(AccessDeniedException.class)
+	public void handleForbidden(Exception ex) {
+		logger.error("Exception is: ", ex);
+	}
+
 
 	/**
 	 * Maps DataIntegrityViolationException to a 409 Conflict HTTP status code.

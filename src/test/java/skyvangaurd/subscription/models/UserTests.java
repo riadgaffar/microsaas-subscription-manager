@@ -34,6 +34,10 @@ public class UserTests {
 
   @BeforeEach
   public void setUp() {
+    Authority userAuthority = new Authority();
+    userAuthority.setName("ROLE_USER");
+    Set<Authority> authorities = new HashSet<>();
+    authorities.add(userAuthority);
 
     Subscription sub1 = new Subscription();
     sub1.setId(123L);
@@ -45,6 +49,7 @@ public class UserTests {
     user.setId(123123123L);
     user.setEmail("test@test.com");
     user.setPassword("changeMe");
+    user.setAuthorities(authorities);
 
     sub1.setUser(user);
     subscriptions.add(sub1);
@@ -72,17 +77,36 @@ public class UserTests {
   }
 
   @Test
+  void testGetAuthorities() {
+    assertEquals(user.getAuthorities().size(), 1);
+  }
+
+  @Test
+  void testAddAndRemoveAuthority() {
+    Authority newUserAuthority = new Authority();
+    newUserAuthority.setName("ROLE_ADMIN");
+    
+    user.addAuthority(newUserAuthority);
+    assertEquals(user.getAuthorities().size(), 2);
+
+    user.removeAuthority(newUserAuthority);
+    assertEquals(user.getAuthorities().size(), 1);
+  }
+
+  @Test
   void userSerializationTest() throws IOException {
     String expectedUserWithSubscription = "{"
       + "\"id\":123123123,"
       + "\"email\":\"test@test.com\","
       + "\"password\":\"changeMe\","
+      + "\"authorities\":[{\"authority\":\"ROLE_USER\", \"name\":\"ROLE_USER\"}],"
       + "\"subscriptions\":["
       + "{"
       + "\"id\":123,"
       + "\"name\":\"Premium Streaming Service\","
       + "\"cost\":12.99,"
-      + "\"renewalDate\":\"2024-01-15\"}]}";
+      + "\"renewalDate\":\"2024-01-15\"}]"
+      + "}";
 
     Map<String, Object> expectedUserJson = objectMapper.readValue(
       expectedUserWithSubscription, new TypeReference<Map<String, Object>>() {});
