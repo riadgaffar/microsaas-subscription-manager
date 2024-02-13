@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.serialization.SubscriptionDto;
 import skyvangaurd.subscription.serialization.UserRegistrationDto;
 
 public interface UserService {
@@ -26,11 +27,11 @@ public interface UserService {
 
   public List<Subscription> findAllSubscriptions(Long userId);
 
-  public void addSubscription(Long userId, Subscription subscription);
+  public void addSubscription(Long userId, SubscriptionDto subscription);
 
   public void deleteSubscriptionForUser(Long userId, Long subscriptionId);
 
-  public Subscription updateSubscriptionForUser(Long userId, Long subscriptionId, Subscription updatedSubscriptionDetails);
+  public Subscription updateSubscriptionForUser(Long userId, Long subscriptionId, SubscriptionDto updatedSubscriptionDetails);
 
   List<User> findUsersWithSubscriptionsExpiringBetween(LocalDate startDate, LocalDate endDate);
 }

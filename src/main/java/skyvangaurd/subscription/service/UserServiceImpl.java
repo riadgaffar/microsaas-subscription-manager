@@ -13,6 +13,7 @@ import skyvangaurd.subscription.models.User;
 import skyvangaurd.subscription.models.UserRepository;
 import skyvangaurd.subscription.repositories.AuthorityRepository;
 import skyvangaurd.subscription.repositories.SubscriptionRepository;
+import skyvangaurd.subscription.serialization.SubscriptionDto;
 import skyvangaurd.subscription.serialization.UserRegistrationDto;
 
 import java.time.LocalDate;
@@ -27,13 +28,13 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private AuthorityRepository authorityRepository;
-    
+
     @Autowired
     private SubscriptionRepository subscriptionRepository;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -112,18 +113,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void addSubscription(Long userId, Subscription subscription) {
+    public void addSubscription(Long userId, SubscriptionDto subscriptionDto) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new IllegalArgumentException("User with user id: " + userId + " not found"));
+
+        Subscription subscription = new Subscription();
+        subscription.setName(subscriptionDto.name());
+        subscription.setCost(subscriptionDto.cost());
+        subscription.setRenewalDate(subscriptionDto.renewalDate());
         subscription.setUser(user);
-        user.getSubscriptions().add(subscription);
-        userRepository.save(user);
+
+        subscriptionRepository.save(subscription);
     }
 
     @Override
     @Transactional
     public Subscription updateSubscriptionForUser(Long userId, Long subscriptionId,
-            Subscription updatedSubscriptionDetails) {
+            SubscriptionDto updatedSubscriptionDetails) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 
@@ -131,9 +137,9 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(
                         () -> new IllegalArgumentException("Subscription not found for the user with id: " + userId));
 
-        subscription.setName(updatedSubscriptionDetails.getName());
-        subscription.setCost(updatedSubscriptionDetails.getCost());
-        subscription.setRenewalDate(updatedSubscriptionDetails.getRenewalDate());
+        subscription.setName(updatedSubscriptionDetails.name());
+        subscription.setCost(updatedSubscriptionDetails.cost());
+        subscription.setRenewalDate(updatedSubscriptionDetails.renewalDate());
 
         return subscriptionRepository.save(subscription);
     }

@@ -68,12 +68,12 @@ public class UserController {
 	 *
 	 * @param userId
 	 * @param subscriptionId
-	 * @return Optional<Subscription>
+	 * @return SubscriptionDto
 	 *
 	 *         Retrieves a subscription for a user
 	 */
 	@GetMapping(value = "/users/{userId}/subscriptions/{subscriptionId}")
-	public ResponseEntity<Subscription> subscriptionDetailsByUser(@PathVariable("userId") Long userId,
+	public SubscriptionDto subscriptionDetailsByUser(@PathVariable("userId") Long userId,
 			@PathVariable("subscriptionId") Long subscriptionId) {
 		return retrieveSubscription(userId, subscriptionId);
 	}
@@ -81,13 +81,13 @@ public class UserController {
 	/**
 	 *
 	 * @param userId
-	 * @return List<Subscription>
+	 * @return List<SubscriptionDto>
 	 *
 	 *         Provides a list of all subscriptions for a user
 	 */
 	@GetMapping(value = "/users/{userId}/subscriptions")
-	public List<Subscription> subscriptionsByUser(@PathVariable("userId") Long userId) {
-		return userService.findAllSubscriptions(userId);
+	public List<SubscriptionDto> subscriptionsByUser(@PathVariable("userId") Long userId) {
+		return convertSubscriptionsToDto(userService.findAllSubscriptions(userId));
 	}
 
 	/**
@@ -124,25 +124,25 @@ public class UserController {
 	 */
 	@PostMapping(value = "/users/{id}/subscription")
 	public ResponseEntity<Void> addSubscription(@PathVariable("id") Long userId,
-			@RequestBody Subscription newSubscription) {
+			@RequestBody SubscriptionDto newSubscription) {
 		userService.addSubscription(userId, newSubscription);
-		return entityWithLocation(newSubscription.getId());
+		return entityWithLocation(newSubscription);
 	}
 
 	/**
-	 * 
+	 *
 	 * @param userId
 	 * @param subscriptionId
 	 * @param updatedSubscriptionDetails
 	 * @return entityWithLocation
-	 * 
+	 *
 	 *         Updates an existing subscription for an existing user
 	 */
 	@PutMapping(value = "/users/{userId}/subscriptions/{subscriptionId}")
 	public ResponseEntity<Void> updateSubscriptionForUser(
 			@PathVariable("userId") Long userId,
 			@PathVariable("subscriptionId") Long subscriptionId,
-			@RequestBody Subscription updatedSubscriptionDetails) {
+			@RequestBody SubscriptionDto updatedSubscriptionDetails) {
 		Subscription updatedSubscription = userService.updateSubscriptionForUser(userId, subscriptionId,
 				updatedSubscriptionDetails);
 		return entityWithLocation(updatedSubscription);
@@ -204,15 +204,15 @@ public class UserController {
 	 * Converts all Users retrieve from the database to a List of UserDetailsDto
 	 */
 
-	 private List<UserDetailsDto> retrieveAllUsers(List<User> users) {
+	private List<UserDetailsDto> retrieveAllUsers(List<User> users) {
 		List<UserDetailsDto> userListDtos = new ArrayList<>();
 
-		for (User user: users) {
+		for (User user : users) {
 			userListDtos.add(convertToUserDto(user));
 		}
 
 		return userListDtos;
-	 }
+	}
 
 	/**
 	 * Finds the User with the given id, throwing an IllegalArgumentException
@@ -227,7 +227,6 @@ public class UserController {
 
 		return convertToUserDto(userOpt.get());
 	}
-
 
 	/**
 	 * 
@@ -244,18 +243,31 @@ public class UserController {
 		return UserDetailsDto;
 	}
 
+	// Helper method to convert subscriptions to SubscriptionDto list
+	private List<SubscriptionDto> convertSubscriptionsToDto(List<Subscription> subscriptions) {
+		return subscriptions.stream()
+				.map(subscription -> new SubscriptionDto(subscription.getId(), subscription.getName(), subscription.getCost(),
+						subscription.getRenewalDate()))
+				.collect(Collectors.toList());
+	}
+
 	/**
 	 * Finds the Subscription with the given id, for a given User with id, throwing
 	 * an
 	 * IllegalArgumentException if there is no such Subscription.
 	 */
-	private ResponseEntity<Subscription> retrieveSubscription(long userId, long subscriptionId)
+	private SubscriptionDto retrieveSubscription(long userId, long subscriptionId)
 			throws IllegalArgumentException {
-		// Optional<Subscription> subscription =
-		// userService.findByUserAndSubscriptionIds(userId, subscriptionId);
+
 		return userService.findByUserAndSubscriptionIds(subscriptionId, userId)
-				.map(subscription -> ResponseEntity.ok(subscription))
-				.orElse(ResponseEntity.notFound().build());
+				.map(subscription -> new SubscriptionDto(
+						subscription.getId(),
+						subscription.getName(),
+						subscription.getCost(),
+						subscription.getRenewalDate()))
+				.orElseThrow(
+						() -> new IllegalArgumentException("Subscription not found for the given user ID: "
+								+ userId + " and subscription ID: " + subscriptionId));
 	}
 
 	/**
@@ -279,13 +291,5 @@ public class UserController {
 		// Return an HttpEntity object - it will be used to build the
 		// HttpServletResponse
 		return ResponseEntity.created(location).build();
-	}
-
-	// Helper method to convert subscriptions to SubscriptionDto list
-	private List<SubscriptionDto> convertSubscriptionsToDto(List<Subscription> subscriptions) {
-		return subscriptions.stream()
-				.map(subscription -> new SubscriptionDto(subscription.getId(), subscription.getName(), subscription.getCost(),
-						subscription.getRenewalDate()))
-				.collect(Collectors.toList());
 	}
 }
