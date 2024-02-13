@@ -21,6 +21,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.serialization.UserRegistrationDto;
 import skyvangaurd.subscription.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -104,8 +105,8 @@ public class UserController {
 	 *         Registers a new user
 	 */
 	@PostMapping(value = "/users")
-	public ResponseEntity<Void> resisterUser(@RequestBody User newUser) {
-		User user = userService.registerUser(newUser);
+	public ResponseEntity<Void> resisterUser(@RequestBody UserRegistrationDto registrationDto) {
+		User user = userService.registerUser(registrationDto);
 		return entityWithLocation(user.getId());
 	}
 

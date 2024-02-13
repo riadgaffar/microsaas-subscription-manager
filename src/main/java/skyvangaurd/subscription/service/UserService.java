@@ -6,12 +6,13 @@ import java.util.Optional;
 
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.serialization.UserRegistrationDto;
 
 public interface UserService {
 
   public List<String> getAuthoritiesForUser(String username);
 
-  public User registerUser(User user);
+  public User registerUser(UserRegistrationDto user);
 
   public Optional<User> findByEmail(String email);
 

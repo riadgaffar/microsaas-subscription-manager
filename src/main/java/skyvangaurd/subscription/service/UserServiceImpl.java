@@ -8,11 +8,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import skyvangaurd.subscription.models.Authority;
-import skyvangaurd.subscription.models.AuthorityRepository;
 import skyvangaurd.subscription.models.Subscription;
-import skyvangaurd.subscription.models.SubscriptionRepository;
 import skyvangaurd.subscription.models.User;
 import skyvangaurd.subscription.models.UserRepository;
+import skyvangaurd.subscription.repositories.AuthorityRepository;
+import skyvangaurd.subscription.repositories.SubscriptionRepository;
+import skyvangaurd.subscription.serialization.UserRegistrationDto;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -49,25 +50,28 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User registerUser(User user) {
-        if (existsByEmail(user.getEmail())) {
-            throw new IllegalArgumentException("User with email: " + user.getEmail() + " already exists");
+    public User registerUser(UserRegistrationDto user) {
+        if (existsByEmail(user.email())) {
+            throw new IllegalArgumentException("User with email: " + user.email() + " already exists");
         }
 
-        String hashedPassword = passwordEncoder.encode(user.getPassword());
-        user.setPassword(hashedPassword);
+        User newUser = new User();
+        newUser.setEmail(user.email());
+
+        String hashedPassword = passwordEncoder.encode(user.password());
+        newUser.setPassword(hashedPassword);
 
         // Ensure user's authorities are properly managed
         Set<Authority> managedAuthorities = new HashSet<>();
-        for (Authority authority : user.getAuthorities()) {
+        for (Authority authority : user.authorities()) {
             Authority managedAuthority = authorityRepository.findByName(authority.getName())
                     .orElseGet(() -> authorityRepository.save(authority));
             managedAuthorities.add(managedAuthority);
         }
         // Now we have a Set<Authority> of managed entities
-        user.setAuthorities(managedAuthorities);
+        newUser.setAuthorities(managedAuthorities);
 
-        return userRepository.save(user);
+        return userRepository.save(newUser);
     }
 
     @Override
