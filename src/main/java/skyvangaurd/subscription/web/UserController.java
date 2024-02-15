@@ -29,8 +29,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import skyvangaurd.subscription.error.NotFoundException;
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.security.JwtTokenBlacklistService;
 import skyvangaurd.subscription.security.JwtUtil;
-import skyvangaurd.subscription.serialization.AuthenticationResponse;
 import skyvangaurd.subscription.serialization.AuthorityDto;
 import skyvangaurd.subscription.serialization.SubscriptionDto;
 import skyvangaurd.subscription.serialization.UserDetailsDto;
@@ -39,6 +39,7 @@ import skyvangaurd.subscription.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -50,18 +51,22 @@ public class UserController {
 	private final UserService userService;
 
 	@Autowired
+	private JwtTokenBlacklistService jwtTokenBlacklistService;
+
+	@Autowired
 	public UserController(UserService userService) {
 		this.userService = userService;
 	}
 
 	@Autowired
-  private AuthenticationManager authenticationManager;
+	private AuthenticationManager authenticationManager;
 
-  @Autowired
-  private JwtUtil jwtUtil;
+	@Autowired
+	private JwtUtil jwtUtil;
 
 	@PostMapping(value = "/login")
-	public ResponseEntity<?> createAuthenticationToken(@RequestBody UserRegistrationDto userRegistrationDto) {
+	public ResponseEntity<?> createAuthenticationToken(@RequestBody UserRegistrationDto userRegistrationDto)
+			throws Exception {
 		try {
 			SecurityContextHolder.getContext().setAuthentication(
 					authenticationManager.authenticate(
@@ -73,7 +78,15 @@ public class UserController {
 		String currentPrincipalName = SecurityContextHolder.getContext().getAuthentication().getName();
 		final String jwt = jwtUtil.generateToken(currentPrincipalName);
 
-		return ResponseEntity.ok(new AuthenticationResponse(jwt));
+		return ResponseEntity.ok(jwt);
+	}
+
+	@PostMapping(value = "/logout")
+	public ResponseEntity<?> logoutUser(@RequestHeader(value = "Authorization") String token) {
+		String tokenValue = token.substring(7); // Remove "Bearer " prefix
+		long expiryDate = jwtUtil.extractExpiration(tokenValue).getTime();
+		jwtTokenBlacklistService.blacklistToken(tokenValue, expiryDate);
+		return ResponseEntity.ok().body("Successfully logged out");
 	}
 
 	@GetMapping(value = "/authorities")
@@ -196,16 +209,16 @@ public class UserController {
 	 * Maps UsernameNotFoundException to a 400 FORBIDDEN HTTP status code.
 	 */
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	@ExceptionHandler({UsernameNotFoundException.class, IllegalArgumentException.class})
+	@ExceptionHandler({ UsernameNotFoundException.class, IllegalArgumentException.class })
 	public void handleBadRequest(Exception ex) {
 		logger.error("Exception is: ", ex);
 	}
-	
+
 	/**
 	 * Maps AccessDeniedExceptions to a 403 FORBIDDEN HTTP status code.
 	 */
 	@ResponseStatus(HttpStatus.FORBIDDEN)
-	@ExceptionHandler(AccessDeniedException.class)
+	@ExceptionHandler({ AccessDeniedException.class, Exception.class })
 	public void handleForbidden(Exception ex) {
 		logger.error("Exception is: ", ex);
 	}
@@ -239,7 +252,7 @@ public class UserController {
 	}
 
 	/**
-	 * 
+	 *
 	 * Converts all Users retrieve from the database to a List of UserDetailsDto
 	 */
 
@@ -299,13 +312,13 @@ public class UserController {
 			throws NotFoundException {
 
 		return userService.findByUserAndSubscriptionIds(subscriptionId, userId)
-            .map(subscription -> new SubscriptionDto(
-                    subscription.getId(),
-                    subscription.getName(),
-                    subscription.getCost(),
-                    subscription.getRenewalDate()))
-            .orElseThrow(() -> new NotFoundException("Subscription not found for the given user ID: "
-                    + userId + " and subscription ID: " + subscriptionId));
+				.map(subscription -> new SubscriptionDto(
+						subscription.getId(),
+						subscription.getName(),
+						subscription.getCost(),
+						subscription.getRenewalDate()))
+				.orElseThrow(() -> new NotFoundException("Subscription not found for the given user ID: "
+						+ userId + " and subscription ID: " + subscriptionId));
 	}
 
 	/**

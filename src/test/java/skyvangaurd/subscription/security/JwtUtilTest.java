@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
+import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -14,9 +15,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import io.jsonwebtoken.Claims;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -25,6 +23,9 @@ public class JwtUtilTest {
 
   @Autowired
   private JwtUtil jwtUtil;
+
+  @Autowired
+	private JwtTokenBlacklistService jwtTokenBlacklistService;
 
   private UserDetails userDetails;
 
@@ -37,7 +38,7 @@ public class JwtUtilTest {
   }
 
   @Test
-  void shouldGenerateNotNullToken() {
+  void shouldGenerateValidToken() {
     String subject = userDetails.getUsername();
     String token = jwtUtil.generateToken(subject);
 
@@ -58,5 +59,15 @@ public class JwtUtilTest {
     String userName = jwtUtil.extractUsername(token);
 
     assertThat(userName).isEqualTo(subject);
+  }
+
+  @Test
+  void shouldConfirmInvalidBlackListedToken() {
+    String subject = userDetails.getUsername();
+    String token = jwtUtil.generateToken(subject);
+    long expiryDate = jwtUtil.extractExpiration(token).getTime();
+		jwtTokenBlacklistService.blacklistToken(token, expiryDate);
+    
+    assertTrue(jwtTokenBlacklistService.isTokenBlacklisted(token));
   }
 }

@@ -43,19 +43,12 @@ public class RestSecurityConfig {
             .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAnyRole("SUPERADMIN")
             .requestMatchers(HttpMethod.GET, "/api/authorities").hasAnyRole("USER", "ADMIN", "SUPERADMIN")
             .requestMatchers("/api/login").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("USER", "ADMIN", "SUPERADMIN")
+            .requestMatchers("/api/logout").permitAll()
             .anyRequest().authenticated())
         .httpBasic(withDefaults())
         .csrf(CsrfConfigurer::disable)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-        // .logout(logout -> logout // should be removed/refactored when JWT is used
-        //         .logoutUrl("/logout") // Specifies the logout URL, default is "/logout"
-        //         .logoutSuccessUrl("/login?logout") // URL to redirect to after logout
-        //         .invalidateHttpSession(true) // Invalidate the session
-        //         .deleteCookies("JSESSIONID") // Delete session cookie
-        //         // Additional logout configuration as needed
-        //     );
     // @formatter:on
     return http.build();
   }

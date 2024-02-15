@@ -8,10 +8,11 @@ import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
 import java.util.HashMap;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
 import java.util.Date;
 import java.util.function.Function;
@@ -26,12 +27,13 @@ public class JwtUtil {
   private Long expirationTime;
 
   public String generateToken(String subject) {
+    // SecretKey key = new SecretKeySpec(getSigningKey(), "HmacSHA256");
     return Jwts.builder()
         .subject(subject)
         .claims(new HashMap<>())
         .issuedAt(new Date(System.currentTimeMillis()))
         .expiration(new Date(System.currentTimeMillis() + expirationTime))
-        .signWith(getSigningKey())
+        .signWith(getSigningKey(), Jwts.SIG.HS256)
         .compact();
   }
 
@@ -44,19 +46,18 @@ public class JwtUtil {
     return extractClaim(token, Claims::getSubject);
   }
 
+  public Date extractExpiration(String token) {
+    return extractClaim(token, Claims::getExpiration);
+  }
+
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
     final Claims claims = extractAllClaims(token);
     return claimsResolver.apply(claims);
   }
 
   private SecretKey getSigningKey() {
-    String rawKey = Jwts.builder()
-        .subject(secret)
-        .issuedAt(new Date(System.currentTimeMillis()))
-        .expiration(new Date(System.currentTimeMillis() + expirationTime))
-        .compact();
-    
-     return new SecretKeySpec(rawKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+    return Keys.hmacShaKeyFor(keyBytes);
   }
 
   private Claims extractAllClaims(String token) {
@@ -65,10 +66,6 @@ public class JwtUtil {
         .build()
         .parseSignedClaims(token)
         .getPayload();
-  }
-
-  private Date extractExpiration(String token) {
-    return extractClaim(token, Claims::getExpiration);
   }
 
   private Boolean isTokenExpired(String token) {
