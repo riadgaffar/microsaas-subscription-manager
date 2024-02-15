@@ -13,6 +13,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,8 +26,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import skyvangaurd.subscription.error.NotFoundException;
 import skyvangaurd.subscription.models.Subscription;
 import skyvangaurd.subscription.models.User;
+import skyvangaurd.subscription.security.JwtUtil;
+import skyvangaurd.subscription.serialization.AuthenticationResponse;
 import skyvangaurd.subscription.serialization.AuthorityDto;
 import skyvangaurd.subscription.serialization.SubscriptionDto;
 import skyvangaurd.subscription.serialization.UserDetailsDto;
@@ -44,6 +52,28 @@ public class UserController {
 	@Autowired
 	public UserController(UserService userService) {
 		this.userService = userService;
+	}
+
+	@Autowired
+  private AuthenticationManager authenticationManager;
+
+  @Autowired
+  private JwtUtil jwtUtil;
+
+	@PostMapping(value = "/login")
+	public ResponseEntity<?> createAuthenticationToken(@RequestBody UserRegistrationDto userRegistrationDto) {
+		try {
+			SecurityContextHolder.getContext().setAuthentication(
+					authenticationManager.authenticate(
+							new UsernamePasswordAuthenticationToken(userRegistrationDto.email(), userRegistrationDto.password())));
+		} catch (BadCredentialsException e) {
+			return ResponseEntity.badRequest().body("Incorrect username or password");
+		}
+
+		String currentPrincipalName = SecurityContextHolder.getContext().getAuthentication().getName();
+		final String jwt = jwtUtil.generateToken(currentPrincipalName);
+
+		return ResponseEntity.ok(new AuthenticationResponse(jwt));
 	}
 
 	@GetMapping(value = "/authorities")
@@ -163,24 +193,14 @@ public class UserController {
 	}
 
 	/**
-	 * Maps UnsupportedOperationException to a 501 Not Implemented HTTP status
-	 * code.
+	 * Maps UsernameNotFoundException to a 400 FORBIDDEN HTTP status code.
 	 */
-	@ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
-	@ExceptionHandler({ UnsupportedOperationException.class })
-	public void handleUnabletoReallocate(Exception ex) {
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	@ExceptionHandler({UsernameNotFoundException.class, IllegalArgumentException.class})
+	public void handleBadRequest(Exception ex) {
 		logger.error("Exception is: ", ex);
 	}
-
-	/**
-	 * Maps IllegalArgumentExceptions to a 404 Not Found HTTP status code.
-	 */
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	@ExceptionHandler(IllegalArgumentException.class)
-	public void handleNotFound(Exception ex) {
-		logger.error("Exception is: ", ex);
-	}
-
+	
 	/**
 	 * Maps AccessDeniedExceptions to a 403 FORBIDDEN HTTP status code.
 	 */
@@ -191,11 +211,30 @@ public class UserController {
 	}
 
 	/**
+	 * Maps NotFoundException to a 404 Not Found HTTP status code.
+	 */
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	@ExceptionHandler(NotFoundException.class)
+	public void handleNotFound(Exception ex) {
+		logger.error("Exception is: ", ex);
+	}
+
+	/**
 	 * Maps DataIntegrityViolationException to a 409 Conflict HTTP status code.
 	 */
 	@ResponseStatus(HttpStatus.CONFLICT)
 	@ExceptionHandler({ DataIntegrityViolationException.class })
 	public void handleAlreadyExists(Exception ex) {
+		logger.error("Exception is: ", ex);
+	}
+
+	/**
+	 * Maps UnsupportedOperationException to a 501 Not Implemented HTTP status
+	 * code.
+	 */
+	@ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
+	@ExceptionHandler({ UnsupportedOperationException.class })
+	public void handleUnabletoReallocate(Exception ex) {
 		logger.error("Exception is: ", ex);
 	}
 
@@ -215,14 +254,14 @@ public class UserController {
 	}
 
 	/**
-	 * Finds the User with the given id, throwing an IllegalArgumentException
+	 * Finds the User with the given id, throwing an NotFoundException
 	 * if there is no such User.
 	 */
-	private UserDetailsDto retrieveUser(long userId) throws IllegalArgumentException {
+	private UserDetailsDto retrieveUser(long userId) throws NotFoundException {
 		Optional<User> userOpt = userService.findById(userId);
 
 		if (userOpt.isEmpty()) {
-			throw new IllegalArgumentException("No such user with id " + userId);
+			throw new NotFoundException("No such user with id " + userId);
 		}
 
 		return convertToUserDto(userOpt.get());
@@ -254,20 +293,19 @@ public class UserController {
 	/**
 	 * Finds the Subscription with the given id, for a given User with id, throwing
 	 * an
-	 * IllegalArgumentException if there is no such Subscription.
+	 * NotFoundException if there is no such Subscription.
 	 */
 	private SubscriptionDto retrieveSubscription(long userId, long subscriptionId)
-			throws IllegalArgumentException {
+			throws NotFoundException {
 
 		return userService.findByUserAndSubscriptionIds(subscriptionId, userId)
-				.map(subscription -> new SubscriptionDto(
-						subscription.getId(),
-						subscription.getName(),
-						subscription.getCost(),
-						subscription.getRenewalDate()))
-				.orElseThrow(
-						() -> new IllegalArgumentException("Subscription not found for the given user ID: "
-								+ userId + " and subscription ID: " + subscriptionId));
+            .map(subscription -> new SubscriptionDto(
+                    subscription.getId(),
+                    subscription.getName(),
+                    subscription.getCost(),
+                    subscription.getRenewalDate()))
+            .orElseThrow(() -> new NotFoundException("Subscription not found for the given user ID: "
+                    + userId + " and subscription ID: " + subscriptionId));
 	}
 
 	/**

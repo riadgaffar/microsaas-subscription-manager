@@ -141,6 +141,22 @@ public class UserClientTests {
   }
 
   @Test
+  void shouldNotRegisterANewUserWithDuplicateEmail() {
+    User newUser = new User();
+    newUser.setEmail("user1@example.com");
+    newUser.setPassword("changeme");
+
+    Authority authority = new Authority();
+    authority.setName("ROLE_ADMIN");
+    newUser.addAuthority(authority);
+
+    ResponseEntity<Void> response = restTemplate
+        .postForEntity("/api/users", newUser, Void.class);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
+
+
+  @Test
   void shouldUpdateAnExistingUserSubscription() {
     // Prepare the updated subscription details
     Subscription updatedSubscription = new Subscription();
