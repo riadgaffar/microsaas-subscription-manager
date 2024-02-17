@@ -74,7 +74,7 @@ public class UserClientTests {
 
     // Delay for 1000 ms to slow down token initialization
     try {
-      Thread.sleep(800);
+      Thread.sleep(1000);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); // Restore interrupted status
       throw new RuntimeException(e); // Optional: rethrow as unchecked exception
