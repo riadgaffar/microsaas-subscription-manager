@@ -26,7 +26,7 @@ dependencies {
 	compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
 
 	implementation 'org.hsqldb:hsqldb'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+	// implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	
@@ -42,7 +42,7 @@ tasks.named('test') {
 // This section causes useful test output to go to the terminal.
 test {
     testLogging {
-        events "passed", "skipped", "failed" //, "standardOut", "standardError"
+        events "passed", "skipped", "failed", "standardOut", "standardError"
 
         showExceptions true
         exceptionFormat "full"

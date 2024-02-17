@@ -27,7 +27,6 @@ public class JwtUtil {
   private Long expirationTime;
 
   public String generateToken(String subject) {
-    // SecretKey key = new SecretKeySpec(getSigningKey(), "HmacSHA256");
     return Jwts.builder()
         .subject(subject)
         .claims(new HashMap<>())

@@ -45,7 +45,7 @@ public class RestSecurityConfig {
             .requestMatchers("/api/login").permitAll()
             .requestMatchers("/api/logout").permitAll()
             .anyRequest().authenticated())
-        .httpBasic(withDefaults())
+        // .httpBasic(withDefaults())
         .csrf(CsrfConfigurer::disable)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);

@@ -1,128 +1,106 @@
 package skyvangaurd.subscription.security;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
+import skyvangaurd.subscription.config.TestServiceConfiguration;
 import skyvangaurd.subscription.models.Authority;
 import skyvangaurd.subscription.models.User;
 import skyvangaurd.subscription.serialization.UserDetailsDto;
-import skyvangaurd.subscription.serialization.UserRegistrationDto;
+import skyvangaurd.utils.LogInOutService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ContextConfiguration(classes = TestServiceConfiguration.class)
 @ActiveProfiles("test")
 public class AuthenticationIntegrationTest {
 
   @Autowired
   private TestRestTemplate restTemplate;
 
-  @LocalServerPort
-  private int port;
+  @Autowired
+  private LogInOutService logInOutService;
 
   private User newUser;
+  private HttpHeaders headers;
+  private String token;
 
-  @BeforeAll
+  @BeforeEach
   public void setup() {
     newUser = new User();
     newUser.setEmail("user1@example.com");
-    Authority authority = new Authority();
-    authority.setName("ROLE_ADMIN");
-    newUser.addAuthority(authority);
+
+    Authority authority1 = new Authority();
+    authority1.setName("ROLE_ADMIN");
+    newUser.addAuthority(authority1);
+
+    Authority authority2 = new Authority();
+    authority2.setName("ROLE_SUPERADMIN");
+    newUser.addAuthority(authority2);
+
+    ResponseEntity<String> loginResponse = logInOutService.doLogin(newUser);
+    token = loginResponse.getBody();
+  }
+
+  @AfterEach
+  public void teardown() {
+    logInOutService.doLogout(headers);
+    headers = null;
+    newUser = null;
+    token = null;
+  }
+
+  private <T> ResponseEntity<T> makeExchange(String url, HttpMethod method, HttpEntity<?> requestEntity,
+      Class<T> responseType) {
+    return restTemplate.exchange(url, method, requestEntity, responseType);
   }
 
   @Test
-  public void shouldLoginWithValidUserAndReceiveJwtTokenAndSuccessfullyLogout() {
+  public void shouldHaveValidToken() {
+    newUser.setPassword("changeme");
+    headers = new HttpHeaders();
+    headers.set("Authorization", "Bearer " + token);
+    
+    assertThat(headers.get("Authorization")).isNotEmpty();
+    assertTrue(headers.get("Authorization").get(0).contains("Bearer"));
+  }
+
+  @Test
+  public void shouldDenyAccessWithBlacklistedToken() {
 
     newUser.setPassword("changeme");
-    ResponseEntity<String> loginResponse = doLogin();
+    headers = new HttpHeaders();
+    headers.set("Authorization", "Bearer " + token);
 
-    assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(loginResponse.getBody()).isNotNull();
+    HttpEntity<String> blacklistCheckRequest = new HttpEntity<>(headers);
+    ResponseEntity<UserDetailsDto[]> response = makeExchange(
+        logInOutService.createURLWithPort("/api/users"),
+        HttpMethod.GET,
+        blacklistCheckRequest,
+        UserDetailsDto[].class);
 
-    ResponseEntity<String> logoutResponse = doLogout(loginResponse);
-
-    assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
-  public void testAccessDeniedWithBlacklistedToken() {
-    newUser.setPassword("changeme");
-    ResponseEntity<String> loginResponse = doLogin();
+  public void shouldNotLoginWithInvalidCredentials() {
+    newUser.setPassword("wrongPassword");
+    headers = new HttpHeaders();
+    headers.set("Authorization", "Bearer " + token);
 
-    assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(loginResponse.getBody()).isNotNull();
-
-    ResponseEntity<String> logoutResponse = doLogout(loginResponse);
-
-    assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-    ResponseEntity<UserDetailsDto[]> response = restTemplate.getForEntity(createURLWithPort("/api/users"), UserDetailsDto[].class);
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(token).isEqualTo("Incorrect username or password");
   }
-
-  @Test
-  public void shouldNotLoginWithInalidUserCredentialAndReceiveJwtToken() {
-
-    String url = createURLWithPort("/api/login");
-
-    newUser.setPassword("invalid");
-
-    UserRegistrationDto user = convertToUserDto(newUser);
-    HttpHeaders headers = new HttpHeaders();
-    HttpEntity<UserRegistrationDto> request = new HttpEntity<>(user, headers);
-
-    ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    assertThat(response.getBody()).isEqualTo("Incorrect username or password");
-  }
-
-  private ResponseEntity<String> doLogin() {
-    String loginUrl = createURLWithPort("/api/login");
-
-    UserRegistrationDto user = convertToUserDto(newUser);
-    HttpHeaders headers = new HttpHeaders();
-    HttpEntity<UserRegistrationDto> loginRequest = new HttpEntity<>(user, headers);
-
-    return restTemplate.postForEntity(loginUrl, loginRequest, String.class);
-  }
-
-  private ResponseEntity<String> doLogout(ResponseEntity<String> loginResponse) {
-    String logoutUrl = createURLWithPort("/api/logout");
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("Authorization", "Bearer " + loginResponse.getBody());
-    HttpEntity<String> logoutRequest = new HttpEntity<>(null, headers);
-    return restTemplate.postForEntity(logoutUrl, logoutRequest, String.class);
-  }
-
-  /**
-   * 
-   * Converts User to UserDetailsDto
-   */
-  private UserRegistrationDto convertToUserDto(User user) {
-
-    UserRegistrationDto userRegistrationDto = new UserRegistrationDto(
-        user.getEmail(),
-        user.getPassword(),
-        user.getAuthorities().stream().toList());
-    return userRegistrationDto;
-  }
-
-  private String createURLWithPort(String uri) {
-    return "http://localhost:" + port + uri;
-  }
-
 }
